@@ -18,7 +18,7 @@ type Message struct {
 var SecretKey = []byte("keyKeyKey")
 
 func main() {
-	
+
 	http.HandleFunc("/home", verifyJWT(handlePage))
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
@@ -94,9 +94,9 @@ func verifyJWT(endpointHandler func(w http.ResponseWriter, r *http.Request)) htt
 	})
 }
 
-func authPage (w http.ResponseWriter, ){
+func authPage(w http.ResponseWriter) {
 	token, err := generateJWT()
-	if err != nil{
+	if err != nil {
 		return
 	}
 	client := &http.Client{}
@@ -105,29 +105,25 @@ func authPage (w http.ResponseWriter, ){
 	_, _ = client.Do(request)
 }
 
-// func extractClims(_ http.ResponseWriter, r *http.Request)(string , error){
-// 	if r.Header["Token"] != nil{
-// 		tokenString := r.Header["Token"][0]
-// 		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-// 			if _, ok := token.Method.(*jwt.SigningMethodECDSA); !ok{
+func extractClims(_ http.ResponseWriter, r *http.Request) (string, error) {
+	if r.Header["Token"] != nil {
+		//tokenString := r.Header["Token"][0]
+		token, err := jwt.Parse(r.Header["Token"][0], func(token *jwt.Token) (interface{}, error) {
+			_, ok := token.Method.(*jwt.SigningMethodECDSA)
+			if !ok {
+				return nil, fmt.Errorf("there's an error with the signing method")
+			}
+			return SecretKey, nil
+		})
+		if err != nil {
+			return "Error Parsing token", err
+		}
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if ok && token.Valid {
+			username := claims["username"].(string)
+			return username, nil
+		}
 
-// 			}
-// 		})
-// 	}
-// }
-// func (tokenString string) (jwt.MapClaims, error){
-// 	token, err := jwt.Parse(tokenString, func(token *jwt.Token)   (interface{}, error) {
-//         if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-//         return nil, fmt.Errorf("unexpected signing method: %v",       token.Header["alg"])
-//         }
-//     return SecretKey, nil
-// })
-
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	if claims, ok := token.Claims.(jwt.MapClaims);ok && token.Valid {
-// 		return claims, nil
-// 	}
-// 	return nil, err
-// }
+	}
+	return "unable to extract claims", nil
+}
